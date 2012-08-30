@@ -1,9 +1,9 @@
-Jigoshop Order Locators
------------------------
+Jigoshop Order Locator
+----------------------
 
 Contributors: Carlos Sanz García  
 Tags: jigosghop, locator, id, e-commerce, unique id  
-Requires at least: Wordpress 3.2 and Jigoshop 1.3  
+Requires at least: Wordpress 3.2 + Jigoshop 1.3  
 Tested up to: 3.4.1  
 Version: 0.1  
 License: GPLv2 or later  
