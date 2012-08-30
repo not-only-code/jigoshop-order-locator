@@ -1,0 +1,41 @@
+# @ jigoshop locator
+msgid ""
+msgstr ""
+"Estado del pedido: <mark>%s</mark>\n"
+"Project-Id-Version: \n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: Carlos Sanz <carlos.sanz@gmail.com>\n"
+"Language-Team: Carlos Sanz <carlos.sanz@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: /jigoshop-order-locator.php
+msgid "Locator"
+msgstr "Localizador"
+
+#: /jigoshop-order-locator.php
+msgid "Locators"
+msgstr "Localizadores"
+
+#: /jigoshop-order-locator.php
+msgid "LOCATORS"
+msgstr "LOCALIZADORES"
+
+#: /jigoshop-order-locator.php
+msgid "Order locator"
+msgstr "Localizador del pedido"
+
+#: /jigoshop-order-locator.php
+msgid "Locator length"
+msgstr "Logitud del localizador"
+
+#: /jigoshop-order-locator.php
+msgid "Default = 6"
+msgstr "Por defecto = 6"
+
+#: /jigoshop-order-locator.php
+msgid "Setting up the locator digits length; min: 6 digits, max: 32 digits."
+msgstr "Ajusta los dígitos del localizador; min: 6 dígitos, max: 32 dígitos."
+
