@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Order Locators for Jigoshop
+Plugin Name: Jigoshop Order Locator
 Plugin URI: http://wordpress.org/extend/plugins/jigoshop-coupon-products
 Description: Extends JigoShop adding an unique locator per order+product
 Version: 0.1
@@ -12,47 +12,90 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 
 
-//  Check if Jigoshop is active
-if ( in_array( 'jigoshop/jigoshop.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ):
-	
-
-
-/**
- * Gets Jigoshop version
- *
- * @package		Jigoshop
- * @subpackage 	Order Locators for Jigoshop
- * @since 		0.1
- *
- **/
-function jigoshop_locator_version() {
-	require_once(ABSPATH.'wp-admin/includes/plugin.php');
-	$plugin_data = get_plugin_data(WP_PLUGIN_DIR.'/jigoshop/jigoshop.php');
-	return $plugin_data['Version'];
-}
-
-
-
 /**
  * Adds news settings to Jigoshop
  *
  * @package		Jigoshop
- * @subpackage 	Order Locators for Jigoshop
+ * @subpackage 	Jigoshop Order Locator
  * @since 		0.1
  *
  **/
 function jigoshop_locator_access() {
-	
-	if ( jigoshop_locator_version() < '1.3') return;
-	
-	load_plugin_textdomain( 'jigoshop', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
-		
-	Jigoshop_Base::get_options()->install_external_options_after_id( 'jigoshop_disable_fancybox', jigoshop_locator_settings() );
+    
+    // gettext
+    load_plugin_textdomain( 'jigoshop', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+    
+	// dependeces
+	$active_plugins_ = apply_filters( 'active_plugins', get_option( 'active_plugins' ) );
+	if ( in_array( 'jigoshop/jigoshop.php', $active_plugins_ ) && JIGOSHOP_VERSION >= 1207160  ):
+        
+        Jigoshop_Base::get_options()->install_external_options_after_id( 'jigoshop_disable_fancybox', jigoshop_locator_settings() );
+        add_action('jigoshop_after_email_order_info', 'jigoshop_locator_after_email_order_info');
+        
+        // admin hooks
+        if (is_admin()) {
+            
+            add_action( 'jigoshop_admin_order_item_headers', 'jigoshop_locator_order_item_headers' );
+            add_action( 'jigoshop_admin_order_item_values', 'jigoshop_locator_order_item_values', 10, 2 );
+            //add_action( 'jigoshop_process_shop_order_meta', 'jigoshop_store_locator', 10 );
+        };
+        
+    else:
+
+		if (is_admin())
+            add_action( 'admin_notices', 'jigoshop_locator_dependences');
+        
+        
+    endif;
 }
 add_action('plugins_loaded', 'jigoshop_locator_access');
 
 
 
+/**
+ * Adds locator length in settings
+ *
+ * @package		Jigoshop
+ * @subpackage 	Jigoshop Order Locator
+ * @since 		0.1
+ *
+**/
+/*
+function jigoshop_store_locator($post_id = false) {
+	if ( !$post_id ) return;
+	
+	$order_items = get_post_meta($post_id, 'order_items', true);
+	
+	foreach ($order_items as $row => $item):
+		$row++;
+        $locators = array();
+			
+		if ( $item['qty'] > 1) {
+            
+			for ( $n=1; $n < ($item['qty']+1); $n++)
+				$locators[] = jigoshop_generate_locator($post_id, $item['id'], $row, $n);
+            
+		} else {
+				
+			$locators[] = jigoshop_generate_locator($post_id, $item['id'], $row );
+		};
+		
+        $order_items[$row-1]['locator_id'] = $locators;
+	endforeach;
+    
+    update_post_meta($post_id, 'order_items', $order_items);
+}
+*/
+
+
+/**
+ * Adds locator length in settings
+ *
+ * @package		Jigoshop
+ * @subpackage 	Jigoshop Order Locator
+ * @since 		0.1
+ *
+**/
 function jigoshop_locator_settings() {
 	
 	$settings = array();
@@ -80,6 +123,16 @@ function jigoshop_locator_settings() {
 
 
 
+/**
+ * Adds locators in order email
+ *
+ * @param int $order_id: id of order reference
+ *
+ * @package		Jigoshop
+ * @subpackage 	Jigoshop Order Locator
+ * @since 		0.1
+ *
+**/
 function jigoshop_locator_after_email_order_info($order_id) {
 	
     echo '=====================================================================' . PHP_EOL;
@@ -93,17 +146,16 @@ function jigoshop_locator_after_email_order_info($order_id) {
 		if ( isset($item['qty']) && !empty($item['qty']) && $item['qty'] > 1 ):
 			for ($n=1; $n < ($item['qty']+1); $n++) { 
 				$locator = jigoshop_generate_locator($order_id, $item['id'], $row, $n);
-				echo "$locator - {$item['name']}" . PHP_EOL;
+				echo "<span style=\"display:inline-block; font-size: 15px; font-family: Consolas,Monaco,monospace; line-height:2em; padding: 1px 3px; background: #EAEAEA\">$locator</span> - {$item['name']}" . PHP_EOL;
 			}
 		else:
 			$locator = jigoshop_generate_locator($order_id, $item['id'], $row);
-			echo "$locator - {$item['name']}" . PHP_EOL;
+			echo "<span style=\"display:inline-block; font-size: 15px; font-family: Consolas,Monaco,monospace; line-height:2em; padding: 1px 3px; background: #EAEAEA\">$locator</span> - {$item['name']}" . PHP_EOL;
 		endif;
 	}
 	echo PHP_EOL;
 	
 }
-add_action('jigoshop_after_email_order_info', 'jigoshop_locator_after_email_order_info');
 
 
 
@@ -111,7 +163,7 @@ add_action('jigoshop_after_email_order_info', 'jigoshop_locator_after_email_orde
  * prints locator column in header of table of product lists on order page
  *
  * @package		Jigoshop
- * @subpackage 	Order Locators for Jigoshop
+ * @subpackage 	Jigoshop Order Locator
  * @since 		0.1
  *
 **/
@@ -124,7 +176,6 @@ function jigoshop_locator_order_item_headers() {
 
 	?><th class="variation"><?php _e('Locators', 'jigoshop'); ?></th><?php
 }
-add_action('jigoshop_admin_order_item_headers', 'jigoshop_locator_order_item_headers');
 
 
 
@@ -132,7 +183,7 @@ add_action('jigoshop_admin_order_item_headers', 'jigoshop_locator_order_item_hea
  * prints locator column in body of table of product lists on order page
  *
  * @package		Jigoshop
- * @subpackage 	Order Locators for Jigoshop
+ * @subpackage 	Jigoshop Order Locator
  * @since 		0.1
  *
 **/
@@ -162,22 +213,34 @@ function jigoshop_locator_order_item_values($_product, $item = false) {
 	
 	echo '</td>' . PHP_EOL;
 }
-add_action('jigoshop_admin_order_item_values', 'jigoshop_locator_order_item_values', 10, 2 );
 
 
 
+/**
+ * generates locator hash
+ *
+ * @param int $order_ID id reference of order
+ * @param int $product_ID id reference of product
+ * @param int $row position of current item inside order
+ * @param int $qty quantity number inside position
+ *
+ * @return ecripted string
+ *
+ * @package		Jigoshop
+ * @subpackage 	Jigoshop Order Locator
+ * @since 		0.1
+ *
+**/
 function jigoshop_generate_locator($order_ID = false, $product_ID = false, $row = false, $qty = 1) {
 	
 	if (!$order_ID || !$product_ID || !$row ) return '';
 	
+    $locator = "#$order_ID#$product_ID#$row#$qty";
 	$locator_length = Jigoshop_Base::get_options()->get_option('jigoshop_locator_length');
 	
-	$locator = "#$order_ID#$product_ID#$row";
-	if (!empty($qty)) $locator .= "#$qty";
-	
 	return jigoshop_encode_locator($locator , $locator_length);
-	
 }
+
 
 
 /**
@@ -190,7 +253,7 @@ function jigoshop_generate_locator($order_ID = false, $product_ID = false, $row 
  * @return ecripted string
  *
  * @package		Jigoshop
- * @subpackage 	Order Locators for Jigoshop
+ * @subpackage 	Jigoshop Order Locator
  * @since 		0.1
  *
 **/
@@ -207,43 +270,24 @@ function jigoshop_encode_locator($input, $length, $charset = 'abcdefghijklmnopqr
 
     } while(strlen($output) < $length);
 
-    return substr($output,0,$length);
+    return substr($output, 0, $length);
 }
 
 
-/**
- * Admin scripts
- **/
- /*
-function jigoshop_locator_admin_scripts() {
-
-	if (!jigoshop_is_admin_page()) return false;
-	wp_enqueue_script('jigoshop_coupon_backend', plugins_url( 'assets/js/write-panels.js' , __FILE__ ), array( 'jigoshop_backend' ), '0.1' );
-}
-add_action( 'admin_print_scripts' , 'jigoshop_coupon_admin_scripts');
-*/
-
 
 /**
- * Enqueue admin styles
+ * admin notice: depencendes
  *
  * @package		Jigoshop
- * @subpackage 	Order Locators for Jigoshop
- * @since 0.1
+ * @subpackage 	Jigoshop Order Locator
+ * @since 		0.1
  *
- **/
- /*
-function jigoshop_locator_admin_styles() {
-
-	if ( ! jigoshop_is_admin_page() ) return false;
-	wp_enqueue_style( 'jigoshop_coupon_admin_styles', plugins_url( 'assets/css/admin.css' , __FILE__ ) );
+**/
+function jigoshop_locator_dependences() {
+	global $current_screen;
+		
+    echo "<div class=\"error\">" . PHP_EOL;
+	echo "<p><strong>Jigoshop Order Locator:</strong></p>" . PHP_EOL;
+	echo "<p>" . __('This plugin requires at least <strong>Jigoshop 1.3</strong> active.', 'jigoshop') . "</p>" . PHP_EOL;
+    echo "</div>" . PHP_EOL;
 }
-add_action( 'admin_enqueue_scripts', 'jigoshop_coupon_admin_styles', 640 );
-*/
-
-
-
-
-
-endif;
-// END Check if Jigoshop is active
