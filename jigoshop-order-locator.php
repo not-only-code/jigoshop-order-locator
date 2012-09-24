@@ -30,7 +30,7 @@ function jigoshop_locator_access() {
 	if ( in_array( 'jigoshop/jigoshop.php', $active_plugins_ ) && JIGOSHOP_VERSION >= 1207160  ):
         
         Jigoshop_Base::get_options()->install_external_options_after_id( 'jigoshop_disable_fancybox', jigoshop_locator_settings() );
-        add_action('jigoshop_after_email_order_info', 'jigoshop_locator_after_email_order_info');
+        add_action('jigoshop_after_email_order_info', 'jigoshop_locator_after_email_order_info', 10 );
         
         // admin hooks
         if (is_admin()) {
@@ -145,16 +145,61 @@ function jigoshop_locator_after_email_order_info($order_id) {
 		
 		if ( isset($item['qty']) && !empty($item['qty']) && $item['qty'] > 1 ):
 			for ($n=1; $n < ($item['qty']+1); $n++) { 
+                
 				$locator = jigoshop_generate_locator($order_id, $item['id'], $row, $n);
-				echo "<span style=\"display:inline-block; font-size: 15px; font-family: Consolas,Monaco,monospace; line-height:2em; padding: 1px 3px; background: #EAEAEA\">$locator</span> - {$item['name']}" . PHP_EOL;
+                $print = $locator .' - ' .$item['name'];                
+                
+                echo apply_filters('jigoshop_email_item_locator', $print, $locator, $order_id, $item, $row );
 			}
 		else:
+            
 			$locator = jigoshop_generate_locator($order_id, $item['id'], $row);
-			echo "<span style=\"display:inline-block; font-size: 15px; font-family: Consolas,Monaco,monospace; line-height:2em; padding: 1px 3px; background: #EAEAEA\">$locator</span> - {$item['name']}" . PHP_EOL;
+			$print =  $locator .' - ' .$item['name'];
+            
+            echo apply_filters('jigoshop_email_item_locator', $print, $locator, $order_id, $item, $row );
+            
 		endif;
 	}
 	echo PHP_EOL;
 	
+}
+
+
+
+/**
+ * Adds locators in order email
+ *
+ * @param int $order_id: id of order reference
+ *
+ * @package		Jigoshop
+ * @subpackage 	Jigoshop Order Locator
+ * @since 		0.1
+ *
+**/
+function jigoshop_get_item_id_by_locator( $order_id = false, $locator = false) {
+	
+    if ( !$order_id || !$locator ) return;
+        
+	$order = new jigoshop_order($order_id);
+    
+    $row = 0;
+	foreach ($order->items as $item) {
+		$row++;
+		
+		if ( isset($item['qty']) && !empty($item['qty']) && $item['qty'] > 1 ):
+            
+			for ($n=1; $n < ($item['qty']+1); $n++) {
+                if ( $locator == jigoshop_generate_locator($order_id, $item['id'], $row, $n) ) return $item['id'];
+            }
+            
+		else:
+            
+            if ( $locator == jigoshop_generate_locator($order_id, $item['id'], $row) ) return $item['id'];
+            
+		endif;
+	}
+	
+    return false;
 }
 
 
@@ -231,45 +276,14 @@ function jigoshop_locator_order_item_values($_product, $item = false) {
  * @since 		0.1
  *
 **/
-function jigoshop_generate_locator($order_ID = false, $product_ID = false, $row = false, $qty = 1) {
+function jigoshop_generate_locator($order_ID = false, $product_ID = false, $row = 1, $qty = 1) {
 	
-	if (!$order_ID || !$product_ID || !$row ) return '';
+	if (!$order_ID || !$product_ID ) return '';
 	
     $locator = "#$order_ID#$product_ID#$row#$qty";
-	$locator_length = Jigoshop_Base::get_options()->get_option('jigoshop_locator_length');
-	
-	return jigoshop_encode_locator($locator , $locator_length);
-}
-
-
-
-/**
- * encodes a string with length parameter (resource-intensive)
- *
- * @param $input string to be encripted
- * @param $length length of result
- * @param $charset avaiable source for encript
- *
- * @return ecripted string
- *
- * @package		Jigoshop
- * @subpackage 	Jigoshop Order Locator
- * @since 		0.1
- *
-**/
-function jigoshop_encode_locator($input, $length, $charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUFWXIZ0123456789') {
-    $output = '';
-    $input = md5($input); //this gives us a nice random hex string regardless of input 
-
-    do{
-        foreach (str_split($input,8) as $chunk){
-            srand(hexdec($chunk));
-            $output .= substr($charset, rand(0,strlen($charset)), 1);
-        }
-        $input = md5($input);
-
-    } while(strlen($output) < $length);
-
+	$length = Jigoshop_Base::get_options()->get_option('jigoshop_locator_length');
+    $output = md5($locator, false);
+    
     return substr($output, 0, $length);
 }
 
